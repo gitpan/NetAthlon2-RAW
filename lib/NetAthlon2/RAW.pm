@@ -22,7 +22,10 @@ our %EXPORT_TAGS = ( 'all' => [ qw() ] );
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} });
 our @EXPORT = qw();
 
-our $VERSION = '0.01';
+our $VERSION = '0.10';
+
+our $timeDelta = 1;
+our $maxWatts = 2000;
 
 local *FP;
 local *DIR;
@@ -73,14 +76,6 @@ sub _parse_preamble {
 	( $self->{'data'}->{'Heart Rate'}->{'Zone 2'}->{'Min'},
 		$self->{'data'}->{'Heart Rate'}->{'Aerobic Threshold'} ) =
 		split (/\s/, ${$self->{'RAW'}}[6]);
-	#$self->{'data'}->{'Heart Rate'}->{'Zone 3'}->{'Max'} += 0;
-	#$self->{'data'}->{'Heart Rate'}->{'Zone 3'}->{'Min'} += 0;
-	#$self->{'data'}->{'Heart Rate'}->{'Zone 2'}->{'Max'} += 0;
-	#$self->{'data'}->{'Heart Rate'}->{'Zone 2'}->{'Min'} += 0;
-	#$self->{'data'}->{'Heart Rate'}->{'Zone 1'}->{'Max'} += 0;
-	#$self->{'data'}->{'Heart Rate'}->{'Zone 1'}->{'Min'} += 0;
-	#$self->{'data'}->{'Heart Rate'}->{'Aerobic Threshold'} += 0;
-	#$self->{'data'}->{'Heart Rate'}->{'Anaerobic Threshold'} += 0;
 
 	# Store the start time (converting to UNIX timestamp)
 	my ($mon, $day, $year, $hour, $h, $min, $m, $sec, $ampm);
@@ -104,7 +99,7 @@ sub _parse_preamble {
 			carp "Start time mismatch between file name ("
 				. $self->{'file'}
 				. ") and file contents"
-				if ( $h != $hour || (abs($m-$min) > 1) || ${$self->{'RAW'}}[9] != ($ampm eq 'am' ? 0: 1));
+				if ( $h != $hour || (abs($m-$min) > $timeDelta) || ${$self->{'RAW'}}[9] != ($ampm eq 'am' ? 0: 1));
 
 			$hour += 12 if ( $ampm eq 'pm' );
 
@@ -135,14 +130,14 @@ sub _parse_summary {
 	carp "Second to last line not 256"
 		if ( $self->{'RAW'}[-2] != 256 );
 
-	my ($u, $u2);
-	( $u, $self->{'data'}->{'Distance'}, $u2 ) =
+	my ($u);
+	( $u, $self->{'data'}->{'Distance'}, $self->{'data'}->{'Cadence'} ) =
 		split (/\s+/, ${$self->{'RAW'}}[-1]);
 }
 
 sub _parse_line {
 	my ($self, $line) = @_;
-	my ($time);
+	my ($time, $dist);
 	chomp $line;
 	chop $line;
 	my ($hr, $u, $speed, $power, $cadence, $grade, $alt) = split /\s/, $line;
@@ -151,9 +146,18 @@ sub _parse_line {
 		( exists $self->{'data'}->{'Check Points'}
 			? scalar @{$self->{'data'}->{'Check Points'}}
 			: 0);
+
+	# Insert a calculated distance for this Sample Rate,
+	# which will be used in calculating the Average Speed.
+	$dist = ( $speed / 10 ) *
+		( exists $self->{'data'}->{'Check Points'}
+			? ($self->{'data'}->{'Sample Rate'} / 3600)
+			: 0);
+
 	push @{$self->{'data'}->{'Check Points'}}, 
 		{
 			'Elapsed Time' => $time,
+			'Calculated Distance' => $dist,
 			'Heart Rate' => $hr,
 			'Grade' => $grade / 10,
 			'Speed' => $speed / 10,
@@ -167,24 +171,37 @@ sub _add_averages {
 	my ($self) = @_;
 
 	# Calculate some useful averages
-	my ( $c, $cc, $w, $wc, $hr, $hrc ) = ( 0, 0, 0, 0, 0, 0 );
+	my ( $c, $cc, $w, $wc, $hr, $hrc, $dist ) = ( 0, 0, 0, 0, 0, 0, 0 );
 	map {
 		if ( $_->{'Cadence'} > 0 ) {
 			$c += $_->{'Cadence'}; $cc++;
 		}
-		if ( $_->{'Watts'} > 0 ) {
+
+		# There is a bug when you have a warm up time, the first
+		# checkpoint will have an unrealistic large value for Watts.
+		if ( $_->{'Watts'} > 0 && $_->{'Watts'} < $maxWatts ) {
 			$w += $_->{'Watts'}; $wc++;
 		}
 		if ( $_->{'Heart Rate'} > 0 ) {
 			$hr += $_->{'Heart Rate'}; $hrc++;
 		}
+		$dist += $_->{'Calculated Distance'}
+			if ( $_->{'Calculated Distance'} > 0 );
 	} @{$self->{'data'}->{'Check Points'}};
 	$self->{'data'}->{'Average Cadence'} = $c / $cc if ( $cc > 0 ); 
 	$self->{'data'}->{'Average Watts'} = $w / $wc if ( $wc > 0 ); 
 	$self->{'data'}->{'Average Heart Rate'} = $hr / $hrc if ( $hrc > 0 ); 
-	$self->{'data'}->{'Average Speed'} = 
-		$self->{'data'}->{'Distance'} / ($self->{'data'}->{'Elapsed Time'} / 3600);
 
+	# BUG:  The Distance listed in the file is the total distance 
+	# ridden, vs the Elapsed Time is not including any warmup time
+	# For example, in the Bike2009-10-25 5-05.RAW test file, the 
+	# elapsed time is 2700 seconds (45 minutes), yet the distance traveled
+	# is 16.87, which was covered in 60 minutes.  Therefor, need to recaclute
+	# the average speed based on the checkpoint's average speed.
+	#$self->{'data'}->{'Average Speed'} = 
+	#	$self->{'data'}->{'Distance'} / ($self->{'data'}->{'Elapsed Time'} / 3600);
+	$self->{'data'}->{'Calculated Distance'} = $dist;
+	$self->{'data'}->{'Average Speed'} = $dist / ($self->{'data'}->{'Elapsed Time'} / 3600);
 }
 
 sub _verify_parse {
@@ -282,27 +299,36 @@ the Check Points array.
 
 =item Average Speed
 
-Calculation of the Speed from the Elapsed Time and Distance.
+Calculation of the averages of the non-zero Speed values from
+the Check Points array.  Used to be just the division of the
+Distance by the Elapsed Time, but the Elapsed Time is the time
+of the race, where as the Distance is the whole distance,
+including any warmup time.  This lead to incorrect Average
+Speed calculations in version 0.01.
 
 =item Average Watts
 
 Calculation of the averages of the non-zero Watts values from
 the Check Points array.
 
+=item Cadence
+
+The overall Cadence of the training session, in miles.
+
 =item Check Points
 
 This is an array of each sample taken during the training session.  Each
-array element is an anonmyous hash with the following keys:
+array element is an anonymous hash with the following keys:
 
 =over 4
 
 =item Altitude
 
-The instantaenous Altitude at the Elapsed Time.
+The instantaneous Altitude at the Elapsed Time.
 
 =item Cadence
 
-The instantaenous Cadence at the Elapsed Time.
+The instantaneous Cadence at the Elapsed Time.
 
 =item Elapsed Time
 
@@ -312,20 +338,20 @@ Number is in seconds.
 
 =item Grade
 
-The instantaenous Grade at the Elapsed Time.
+The instantaneous Grade at the Elapsed Time.
 
 =item Heart Rate
 
-The instantaenous Heart Rate at the Elapsed Time.
+The instantaneous Heart Rate at the Elapsed Time.
 
 =item Speed
 
-The instantaenous Speed at the Elapsed Time. Number is in miles
+The instantaneous Speed at the Elapsed Time. Number is in miles
 per hour.
 
 =item Watts
 
-The instantaenous Watts at the Elapsed Time.
+The instantaneous Watts at the Elapsed Time.
 
 =back
 
@@ -397,6 +423,22 @@ The start time of the training session, in a UNIX time_t format.
 
 =back
 
+=head1 VARIABLES
+
+=over 4
+
+=item $timeDelta
+
+Number of minutes the time listed in the file name and the time listed inside
+the file can vary before throwing an error.  The default is 1 minute.
+
+=item $maxWatts
+
+The maximum watts can be, to be used in calculating the Average Watts.
+The default is 2000 watts.
+
+=back
+
 =head1 SEE ALSO
 
 http://www.whitepeak.org/Raw.aspx
@@ -408,6 +450,10 @@ I believe that the field that Martin lists on his web site
 the Grade was 0, whereas the field he listed as Unknown had positive and
 negative values, and looks to me to be Grade * 10, so I have implemented
 the code to show this deviation from Martin's documentation.
+
+Based on some empirical data, I believe the Unknown value listed after the
+Distance, is really Cadence for the entire time.  I have added the Cadence
+field in addition to Average Cadence.
 
 =head1 AUTHOR
 

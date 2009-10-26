@@ -1,4 +1,16 @@
 Revision history for Perl extension NetAthlon2::RAW
 
+0.10 Sun Oct 25 18:09:10 2009
+	- Add NetAthlon::RAW::timeDelta variable to adjust the slop between
+		the time in the filename and the start time within the file.
+	- Add NetAthlon::RAW::maxWatts variable to ignore unrealistically large
+		values in the Average Watts calculation.
+	- Add Calculated Distance keys in both the Check Point and summary
+		values.
+	- Recalculate the Average Speed based on the Calculated Distance in
+		the summary level and the Elapsed Time.  This is because the
+		Elapsed Time is based on only the race time, whereas the 
+		Distance is based on the race time and warmup time.
+
 0.01	Sun Aug 30 15:31:30 2009
 	- original version
