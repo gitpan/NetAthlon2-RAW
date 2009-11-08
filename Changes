@@ -1,5 +1,8 @@
 Revision history for Perl extension NetAthlon2::RAW
 
+0.11 Sun Nov  8 15:20:07 EST 2009
+	- Fix make test, set TZ to be EDT so Start Time values are correct.
+
 0.10 Sun Oct 25 18:09:10 2009
 	- Add NetAthlon::RAW::timeDelta variable to adjust the slop between
 		the time in the filename and the start time within the file.

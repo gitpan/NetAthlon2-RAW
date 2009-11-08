@@ -17,6 +17,7 @@ my $build = Module::Build->new (
 
 	recommendes		=> {
 		'Test'		=> 0,
+		'Archive::Tar'	=> 0,
 	},
 );
 
