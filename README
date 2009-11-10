@@ -114,10 +114,6 @@ VARIABLES
         listed inside the file can vary before throwing an error. The
         default is 1 minute.
 
-    $maxWatts
-        The maximum watts can be, to be used in calculating the Average
-        Watts. The default is 2000 watts.
-
 SEE ALSO
     http://www.whitepeak.org/Raw.aspx
 

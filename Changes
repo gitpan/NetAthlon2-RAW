@@ -1,5 +1,11 @@
 Revision history for Perl extension NetAthlon2::RAW
 
+0.12 Mon Nov  9 08:58:16 EST 2009
+	- Fix am/pm conversion for the noon hour.
+	- Remove the NetAthlon::RAW::maxWatts variable, check for a zero Speed
+		value instead.
+	- Fix make test to round off test results to 4 significant digits.
+
 0.11 Sun Nov  8 15:20:07 EST 2009
 	- Fix make test, set TZ to be EDT so Start Time values are correct.
 

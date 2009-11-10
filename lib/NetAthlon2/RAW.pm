@@ -5,7 +5,7 @@ use strict;
 use warnings;
 
 use Carp;
-use POSIX qw(mktime);
+use POSIX qw(mktime strftime localtime);
 
 require Exporter;
 
@@ -22,10 +22,9 @@ our %EXPORT_TAGS = ( 'all' => [ qw() ] );
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} });
 our @EXPORT = qw();
 
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 our $timeDelta = 1;
-our $maxWatts = 2000;
 
 local *FP;
 local *DIR;
@@ -101,12 +100,17 @@ sub _parse_preamble {
 				. ") and file contents"
 				if ( $h != $hour || (abs($m-$min) > $timeDelta) || ${$self->{'RAW'}}[9] != ($ampm eq 'am' ? 0: 1));
 
-			$hour += 12 if ( $ampm eq 'pm' );
+			$hour += 12 if ( $ampm eq 'pm' && $hour < 12 );
 
 		} else {
 			croak "Can't verify performance start time";
 		}
 		$self->{'data'}->{'Start Time'} = mktime($sec, $min, $hour, $day, ($mon-1), ($year-1900));
+
+		# Verify our date conversion is correct
+		my ($d) = strftime ("%Y-%m-%d", localtime($self->{'data'}->{'Start Time'}));
+		croak "Failed in Start Time parsing ($year-$mon-$day != $d)\n"
+			if ( $d ne "$year-$mon-$day" );
 	} else {
 		croak "Can't determine what day this performance data is from";
 	}
@@ -178,8 +182,9 @@ sub _add_averages {
 		}
 
 		# There is a bug when you have a warm up time, the first
-		# checkpoint will have an unrealistic large value for Watts.
-		if ( $_->{'Watts'} > 0 && $_->{'Watts'} < $maxWatts ) {
+		# checkpoint will have an unrealistic large value for Watts
+		# and a zero value for Speed.
+		if ( $_->{'Watts'} > 0 && $_->{'Speed'} > 0 ) {
 			$w += $_->{'Watts'}; $wc++;
 		}
 		if ( $_->{'Heart Rate'} > 0 ) {
@@ -431,11 +436,6 @@ The start time of the training session, in a UNIX time_t format.
 
 Number of minutes the time listed in the file name and the time listed inside
 the file can vary before throwing an error.  The default is 1 minute.
-
-=item $maxWatts
-
-The maximum watts can be, to be used in calculating the Average Watts.
-The default is 2000 watts.
 
 =back
 
