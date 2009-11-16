@@ -15,9 +15,12 @@ my $build = Module::Build->new (
 		'Carp'		=> 0,
 	},
 
+	build_requires		=> {
+		'Archive::Tar'	=> 0,
+	},
+
 	recommendes		=> {
 		'Test'		=> 0,
-		'Archive::Tar'	=> 0,
 	},
 );
 

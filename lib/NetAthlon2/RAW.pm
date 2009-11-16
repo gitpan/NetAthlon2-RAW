@@ -22,7 +22,7 @@ our %EXPORT_TAGS = ( 'all' => [ qw() ] );
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} });
 our @EXPORT = qw();
 
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 our $timeDelta = 1;
 
@@ -48,7 +48,7 @@ sub open {
 		carp "$file not a file";
 	}
 
-	open (*FP, $file) || croak "Could not open $file";
+	open (*FP, "< $file") || croak "Could not open $file";
 }
 
 sub _parse_preamble {
@@ -103,16 +103,16 @@ sub _parse_preamble {
 			$hour += 12 if ( $ampm eq 'pm' && $hour < 12 );
 
 		} else {
-			croak "Can't verify performance start time";
+			carp "Can't verify performance start time";
 		}
 		$self->{'data'}->{'Start Time'} = mktime($sec, $min, $hour, $day, ($mon-1), ($year-1900));
 
 		# Verify our date conversion is correct
 		my ($d) = strftime ("%Y-%m-%d", localtime($self->{'data'}->{'Start Time'}));
-		croak "Failed in Start Time parsing ($year-$mon-$day != $d)\n"
+		carp "Failed in Start Time parsing ($year-$mon-$day != $d)\n"
 			if ( $d ne "$year-$mon-$day" );
 	} else {
-		croak "Can't determine what day this performance data is from";
+		carp "Can't determine what day this performance data is from";
 	}
 }
 
@@ -230,8 +230,8 @@ sub parse {
 
 	$self->close();
 
-	croak "Could not read data file"
-		if ( ! scalar @{$self->{'RAW'}} );
+	croak "Not enough data in file"
+		if ( scalar @{$self->{'RAW'}} < 14 );
 
 	delete $self->{'data'};
 

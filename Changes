@@ -1,5 +1,11 @@
 Revision history for Perl extension NetAthlon2::RAW
 
+0.13 Mon Nov 16 08:43:16 EST 2009
+	- Open file in read only mode.
+	- Change some croaks to carps in the parse() routine.
+	- Better checking of data file.
+	- Change Archive::Tar from recommends to build_requires.
+
 0.12 Mon Nov  9 08:58:16 EST 2009
 	- Fix am/pm conversion for the noon hour.
 	- Remove the NetAthlon::RAW::maxWatts variable, check for a zero Speed
