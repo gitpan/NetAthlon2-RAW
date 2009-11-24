@@ -14,8 +14,11 @@ DESCRIPTION
 
 METHODS
     new()
-        Creates a new NetAthlon2::RAW object. new() does not accept any
+        Creates a new NetAthlon2::RAW object. new() accepts the following
         options at this time.
+
+        debug
+            Enable debugging statements.
 
     parse($file)
         Returns a hash reference with the contents of $file. Keys included
@@ -63,9 +66,6 @@ METHODS
             Grade
                 The instantaneous Grade at the Elapsed Time.
 
-            Heart Rate
-                The instantaneous Heart Rate at the Elapsed Time.
-
             Speed
                 The instantaneous Speed at the Elapsed Time. Number is in
                 miles per hour.
@@ -83,24 +83,46 @@ METHODS
             Values taken from the training session.
 
             Aerobic Threshold
+                The aerobic threshold based on the users Max Heart Rate.
+
             Anaerobic Threshold
+                The anaerobic threshold based on the users Max Heart Rate.
+
             Zone 1
                 The highest training zone.
 
-                Max
-                Min
+                Max The max heart rate for zone 1.
+
+                Min The min heart rate for zone 1.
 
             Zone 2
                 The second training zone.
 
-                Max
-                Min
+                Max The max heart rate for zone 2.
+
+                Min The min heart rate for zone 2.
 
             Zone 3
                 The bottom training zone.
 
-                Max
-                Min
+                Max The max heart rate for zone 3.
+
+                Min The min heart rate for zone 3.
+
+        Max Heart Rate
+            The Max Heart Rate throught the Check Points array.
+
+        Max Cadence
+            The Max Cadence throught the Check Points array.
+
+        Max Heart Rate
+            The Max Heart Rate throught the Check Points array.
+
+        Max Speed
+            The Max Speed throught the Check Points array.
+
+        Max Watts
+            The Max Watts throught the Check Points array.
 
         Sample Rate
             Number of seconds between each Check Point sample.

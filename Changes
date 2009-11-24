@@ -1,5 +1,11 @@
 Revision history for Perl extension NetAthlon2::RAW
 
+0.20 Sat Nov 21 14:12:04 EST 2009
+	- Added Max Speed, Max Cadence, Max Heart Rate and Max Watts keys.
+	- Add debug option to new(). 
+	- Add checking of time conversion.
+	- Start of support on MSWin32 platforms.
+
 0.13 Mon Nov 16 08:43:16 EST 2009
 	- Open file in read only mode.
 	- Change some croaks to carps in the parse() routine.

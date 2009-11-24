@@ -13,6 +13,8 @@ my $build = Module::Build->new (
 	requires			=> {
 		'perl'		=> '5.005_03',
 		'Carp'		=> 0,
+		'POSIX'		=> 0,
+		'Socket'		=> 0,
 	},
 
 	build_requires		=> {

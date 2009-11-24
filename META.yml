@@ -1,12 +1,14 @@
 ---
 name: NetAthlon2-RAW
-version: 0.13
+version: 0.20
 author:
   - 'Jim Pirzyk, E<lt>jim+perl@pirzyk.orgE<gt>'
 abstract: Perl extension to parse NetAthlon2 RAW performance data files
 license: perl
 requires:
   Carp: 0
+  POSIX: 0
+  Socket: 0
   perl: 5.005_03
 build_requires:
   Archive::Tar: 0
@@ -17,6 +19,6 @@ meta-spec:
 provides:
   NetAthlon2::RAW:
     file: lib/NetAthlon2/RAW.pm
-    version: 0.13
+    version: 0.20
 resources:
   license: http://dev.perl.org/licenses/

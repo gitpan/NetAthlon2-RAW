@@ -6,6 +6,7 @@ use warnings;
 
 use Carp;
 use POSIX qw(mktime strftime localtime);
+use Socket qw(:DEFAULT :crlf);
 
 require Exporter;
 
@@ -22,7 +23,7 @@ our %EXPORT_TAGS = ( 'all' => [ qw() ] );
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} });
 our @EXPORT = qw();
 
-our $VERSION = '0.13';
+our $VERSION = '0.20';
 
 our $timeDelta = 1;
 
@@ -42,13 +43,16 @@ sub new {
 sub open {
 	my ($self, $file) = @_;
 
-	if ( -f $file ) {
+	if ( defined $file && -f $file ) {
 		$self->{'file'} = $file;
-	} else {
-		carp "$file not a file";
-	}
 
-	open (*FP, "< $file") || croak "Could not open $file";
+		warn "Opening file ($file)\n" if ( exists $self->{'debug'} );
+		open (*FP, "< $file") || croak "Could not open $file";
+		return $self;
+	} else {
+		croak "$file not a file";
+		return undef;
+	}
 }
 
 sub _parse_preamble {
@@ -86,10 +90,16 @@ sub _parse_preamble {
 		$m = $5;
 		$ampm = $6;
 
-		if ( ${$self->{'RAW'}}[8] =~ m/^(\d{2})\.(\d{2})\.(\d{2}).$/ ) {
+		warn "\tyear => $year, month => $mon, day => $day\n\thour => $h, minute => $m, $ampm\n"
+			if ( exists $self->{'debug'} && $self->{'debug'} >= 5 );
+
+		if ( ${$self->{'RAW'}}[8] =~ m/^(\d{2})\.(\d{2})\.(\d{2})$/ ) {
 			$hour = $1;
 			$min = $2;
 			$sec = $3;
+
+			warn "\thour => $hour, minute => $min, second => $sec\n"
+				if ( exists $self->{'debug'} && $self->{'debug'} >= 5 );
 
 			# FIXME: There is a bug in some of the RAW data files as
 			# the time encoded in the filename is 1 minute after the
@@ -97,20 +107,23 @@ sub _parse_preamble {
 			# comparison for the minute field.
 			carp "Start time mismatch between file name ("
 				. $self->{'file'}
-				. ") and file contents"
+				. ") and file contents ($hour:$min)"
 				if ( $h != $hour || (abs($m-$min) > $timeDelta) || ${$self->{'RAW'}}[9] != ($ampm eq 'am' ? 0: 1));
 
 			$hour += 12 if ( $ampm eq 'pm' && $hour < 12 );
 
-		} else {
-			carp "Can't verify performance start time";
-		}
-		$self->{'data'}->{'Start Time'} = mktime($sec, $min, $hour, $day, ($mon-1), ($year-1900));
+			warn "\thour => $hour\n"
+				if ( exists $self->{'debug'} && $self->{'debug'} >= 5 );
 
-		# Verify our date conversion is correct
-		my ($d) = strftime ("%Y-%m-%d", localtime($self->{'data'}->{'Start Time'}));
-		carp "Failed in Start Time parsing ($year-$mon-$day != $d)\n"
-			if ( $d ne "$year-$mon-$day" );
+		} else {
+			carp "Can't verify performance start time (" . $self->{'RAW'}[8] . ")";
+		}
+		$self->{'data'}->{'Start Time'} = mktime($sec, $min, $hour, $day, ($mon-1), ($year-1900), 0, 0, -1);
+
+		# Verify our date and time conversion is correct
+		my ($d) = strftime ("%Y-%m-%d %H:%M", localtime($self->{'data'}->{'Start Time'}));
+		carp "Failed in Start Date parsing ($year-$mon-$day $hour:$min != $d)\n"
+			if ( $d ne "$year-$mon-$day $hour:$min" );
 	} else {
 		carp "Can't determine what day this performance data is from";
 	}
@@ -122,7 +135,7 @@ sub _parse_summary {
 	carp "Start of summary section line not 254"
 		if ( $self->{'RAW'}[-5] != 254 );
 
-	my ($h, $m, $s, $f) = split (/[\.\r]/, $self->{'RAW'}[-3] );
+	my ($h, $m, $s, $f) = split (/\./, $self->{'RAW'}[-3] );
 	chomp($f);
 	$self->{'data'}->{'Elapsed Time'} = ($h * 3600 + $m * 60 + $s + $f / 100) + 0.0;
 
@@ -179,19 +192,30 @@ sub _add_averages {
 	map {
 		if ( $_->{'Cadence'} > 0 ) {
 			$c += $_->{'Cadence'}; $cc++;
+			$self->{'data'}->{'Max Cadence'} = $_->{'Cadence'}
+				if ( ! exists $self->{'data'}->{'Max Cadence'} || $self->{'data'}->{'Max Cadence'} < $_->{'Cadence'} );
 		}
 
-		# There is a bug when you have a warm up time, the first
-		# checkpoint will have an unrealistic large value for Watts
-		# and a zero value for Speed.
-		if ( $_->{'Watts'} > 0 && $_->{'Speed'} > 0 ) {
-			$w += $_->{'Watts'}; $wc++;
+		if ( $_->{'Speed'} > 0 ) {
+			$self->{'data'}->{'Max Speed'} = $_->{'Speed'}
+				if ( ! exists $self->{'data'}->{'Max Speed'} || $self->{'data'}->{'Max Speed'} < $_->{'Speed'} );
+
+			# There is a bug when you have a warm up time, the first
+			# checkpoint will have an unrealistic large value for Watts
+			# and a zero value for Speed.
+			if ( $_->{'Watts'} > 0 ) {
+				$w += $_->{'Watts'}; $wc++;
+				$self->{'data'}->{'Max Watts'} = $_->{'Watts'}
+					if ( ! exists $self->{'data'}->{'Max Watts'} || $self->{'data'}->{'Max Watts'} < $_->{'Watts'} );
+			}
 		}
 		if ( $_->{'Heart Rate'} > 0 ) {
 			$hr += $_->{'Heart Rate'}; $hrc++;
+			$self->{'data'}->{'Max Heart Rate'} = $_->{'Heart Rate'}
+				if ( ! exists $self->{'data'}->{'Max Heart Rate'} || $self->{'data'}->{'Max Heart Rate'} < $_->{'Heart Rate'} );
 		}
 		$dist += $_->{'Calculated Distance'}
-			if ( $_->{'Calculated Distance'} > 0 );
+			if ( ( $_->{'Calculated Distance'} + 0.0 ) > 0 );
 	} @{$self->{'data'}->{'Check Points'}};
 	$self->{'data'}->{'Average Cadence'} = $c / $cc if ( $cc > 0 ); 
 	$self->{'data'}->{'Average Watts'} = $w / $wc if ( $wc > 0 ); 
@@ -224,9 +248,18 @@ sub parse {
 	my ($self, $file) = @_;
 	my ($cnt);
 
-	$self->open($file);
+	$self->open($file) || return undef;
 
-	@{$self->{'RAW'}} = <FP>;
+	warn "Reading contents of (" . $file . ")\n" if ( exists $self->{'debug'} );
+
+	# Change the input record seperator so we get the \r\n eaten by
+	# perl itself, instead of having to code it in the regexes when
+	# parsing the file data.
+	{
+		local ($/) = $CRLF if ( $^O ne 'MSWin32' );
+		@{$self->{'RAW'}} = <FP>;
+		chomp(@{$self->{'RAW'}});
+	}
 
 	$self->close();
 
@@ -255,6 +288,7 @@ sub parse {
 sub close {
 	my ($self) = @_;
 
+	warn "Closing file (" . $self->{'file'} . ")\n" if ( exists $self->{'debug'} );
 	close (FP);
 }
 
@@ -283,8 +317,16 @@ a hash reference to the resultant data structure
 
 =item new()
 
-Creates a new NetAthlon2::RAW object.  new() does not accept any options
+Creates a new NetAthlon2::RAW object.  new() accepts the following options
 at this time.
+
+=over 4
+
+=item debug
+
+Enable debugging statements.
+
+=back
 
 =item parse($file)
 
@@ -345,10 +387,6 @@ Number is in seconds.
 
 The instantaneous Grade at the Elapsed Time.
 
-=item Heart Rate
-
-The instantaneous Heart Rate at the Elapsed Time.
-
 =item Speed
 
 The instantaneous Speed at the Elapsed Time. Number is in miles
@@ -376,7 +414,11 @@ Values taken from the training session.
 
 =item Aerobic Threshold
 
+The aerobic threshold based on the users Max Heart Rate.
+
 =item Anaerobic Threshold
+
+The anaerobic threshold based on the users Max Heart Rate.
 
 =item Zone 1
 
@@ -386,7 +428,11 @@ The highest training zone.
 
 =item Max
 
+The max heart rate for zone 1.
+
 =item Min
+
+The min heart rate for zone 1.
 
 =back
 
@@ -398,7 +444,11 @@ The second training zone.
 
 =item Max
 
+The max heart rate for zone 2.
+
 =item Min
+
+The min heart rate for zone 2.
 
 =back
 
@@ -410,11 +460,35 @@ The bottom training zone.
 
 =item Max
 
+The max heart rate for zone 3.
+
 =item Min
 
+The min heart rate for zone 3.
+
 =back
 
 =back
+
+=item Max Heart Rate
+
+The Max Heart Rate throught the Check Points array.
+
+=item Max Cadence
+
+The Max Cadence throught the Check Points array.
+
+=item Max Heart Rate
+
+The Max Heart Rate throught the Check Points array.
+
+=item Max Speed
+
+The Max Speed throught the Check Points array.
+
+=item Max Watts
+
+The Max Watts throught the Check Points array.
 
 =item Sample Rate
 
