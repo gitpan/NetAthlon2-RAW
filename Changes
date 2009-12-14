@@ -1,5 +1,11 @@
 Revision history for Perl extension NetAthlon2::RAW
 
+0.30 Sat Dec  5 17:22:10 EST 2009
+	- Added na2gd script.
+	- Require GD::Graph perl module.
+	- Fix documentation bug WRT Heart Rate in the Check Points section.
+	- Added more test cases.
+
 0.20 Sat Nov 21 14:12:04 EST 2009
 	- Added Max Speed, Max Cadence, Max Heart Rate and Max Watts keys.
 	- Add debug option to new(). 

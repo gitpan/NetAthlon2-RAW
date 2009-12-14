@@ -23,7 +23,7 @@ our %EXPORT_TAGS = ( 'all' => [ qw() ] );
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} });
 our @EXPORT = qw();
 
-our $VERSION = '0.20';
+our $VERSION = '0.30';
 
 our $timeDelta = 1;
 
@@ -105,12 +105,16 @@ sub _parse_preamble {
 			# the time encoded in the filename is 1 minute after the
 			# time encoded in the file contents, hence the different
 			# comparison for the minute field.
+			my $mina = $h * 60 + $m; 
+			my $minb = $hour * 60 + $min; 
 			carp "Start time mismatch between file name ("
 				. $self->{'file'}
 				. ") and file contents ($hour:$min)"
-				if ( $h != $hour || (abs($m-$min) > $timeDelta) || ${$self->{'RAW'}}[9] != ($ampm eq 'am' ? 0: 1));
+				if ( abs($mina-$minb) > $timeDelta );
 
+			# deal with the noon and midnight hours.
 			$hour += 12 if ( $ampm eq 'pm' && $hour < 12 );
+			$hour = 0 if ( $ampm eq 'am' && $hour == 12 );
 
 			warn "\thour => $hour\n"
 				if ( exists $self->{'debug'} && $self->{'debug'} >= 5 );
@@ -386,6 +390,10 @@ Number is in seconds.
 =item Grade
 
 The instantaneous Grade at the Elapsed Time.
+
+=item Heart Rate
+
+The instantaneous Heart Rate at the Elapsed Time.
 
 =item Speed
 

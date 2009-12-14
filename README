@@ -66,6 +66,9 @@ METHODS
             Grade
                 The instantaneous Grade at the Elapsed Time.
 
+            Heart Rate
+                The instantaneous Heart Rate at the Elapsed Time.
+
             Speed
                 The instantaneous Speed at the Elapsed Time. Number is in
                 miles per hour.
