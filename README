@@ -1,6 +1,6 @@
 NAME
     NetAthlon2::RAW - Perl extension to parse NetAthlon2 RAW performance
-    data files
+    data files.
 
 SYNOPSIS
      use NetAthlon2::RAW;
@@ -10,7 +10,7 @@ SYNOPSIS
 
 DESCRIPTION
     A perl module to parse the NetAthlon RAW file format. parse() will
-    return a hash reference to the resultant data structure
+    return a hash reference to the resultant data structure.
 
 METHODS
     new()

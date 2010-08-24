@@ -1,7 +1,12 @@
 Revision history for Perl extension NetAthlon2::RAW
 
+0.31 Tue Aug 24 08:08:51 EDT 2010
+	- Fix roundoff errors in make test cases.
+	- Added RPM spec file.
+	- Renamed na2gd to na2png
+
 0.30 Sat Dec  5 17:22:10 EST 2009
-	- Added na2gd script.
+	- Added na2png script.
 	- Require GD::Graph perl module.
 	- Fix documentation bug WRT Heart Rate in the Check Points section.
 	- Added more test cases.

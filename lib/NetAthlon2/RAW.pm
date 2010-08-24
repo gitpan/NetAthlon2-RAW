@@ -23,7 +23,7 @@ our %EXPORT_TAGS = ( 'all' => [ qw() ] );
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} });
 our @EXPORT = qw();
 
-our $VERSION = '0.30';
+our $VERSION = '0.31';
 
 our $timeDelta = 1;
 
@@ -301,7 +301,7 @@ __END__
 
 =head1 NAME
 
-NetAthlon2::RAW - Perl extension to parse NetAthlon2 RAW performance data files
+NetAthlon2::RAW - Perl extension to parse NetAthlon2 RAW performance data files.
 
 =head1 SYNOPSIS
 
@@ -313,7 +313,7 @@ NetAthlon2::RAW - Perl extension to parse NetAthlon2 RAW performance data files
 =head1 DESCRIPTION
 
 A perl module to parse the NetAthlon RAW file format.  parse() will return
-a hash reference to the resultant data structure
+a hash reference to the resultant data structure.
 
 =head1 METHODS
 

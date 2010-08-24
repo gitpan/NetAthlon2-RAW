@@ -7,4 +7,5 @@ README
 t/NetAthlon2-RAW.t
 t/test.tar
 META.yml
-script/na2gd
+script/na2png
+perl-NetAthlon2-RAW.spec

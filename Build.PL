@@ -8,8 +8,8 @@ my $build = Module::Build->new (
 	create_makefile_pl	=> 'passthrough',
 	create_readme		=> 1,
 	sign				=> 0,
-	add_to_cleanup		=> ['t/Bike*.RAW', 't/Bike*.png'],
-
+	add_to_cleanup		=> ['t/Bike*.RAW', 't/Bike*.png', 'Makefile' ],
+	script_files		=> [ 'script/na2png' ],
 	requires			=> {
 		'perl'		=> '5.005_03',
 		'Carp'		=> 0,
@@ -17,11 +17,9 @@ my $build = Module::Build->new (
 		'Socket'		=> 0,
 		'GD::Graph'	=> 0,
 	},
-
 	build_requires		=> {
 		'Archive::Tar'	=> 0,
 	},
-
 	recommendes		=> {
 		'Test'		=> 0,
 	},

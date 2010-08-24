@@ -11,10 +11,12 @@ use GD::Graph::lines;
 my (%opts, @data);
 $opts{'l'} = 4;
 $opts{'s'} = 600;
-$opts{'t'} = 'png';
+$opts{'t'} = &File::Basename::basename($0, '.pl');
+$opts{'t'} =~ s/na2//;
 
 sub usage () {
-	printf "Usage: $0 [-h] [-l width] [-s size] [-t type] <input file(s)>\n";
+	printf "Usage: %s [-h] [-l width] [-s size] [-t type] <input file(s)>\n",
+		&File::Basename::basename($0, '.pl');
 	printf "\t-h\t\tThis help screen\n";
 	printf "\t-l <width>\tLine width (defaults to $opts{'l'})\n";
 	printf "\t-s <size>\tImage size (defaults to $opts{'s'})\n";

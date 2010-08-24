@@ -32,8 +32,8 @@ my $testfiles = {
 		'Tests' => {
 			'Distance' => 32.90,
 			'Elapsed Time' => 6951.49,
-			'Average Cadence' => 87.6522,
-			'Average Watts' => 187.8943,
+			'Average Cadence' => 87.6523,
+			'Average Watts' => 187.8944,
 			'Start Time' => 1250787180,
 			'Check Points' => 465,
 			'Max Watts' => 419,
@@ -50,7 +50,7 @@ my $testfiles = {
 		'Tests' => {
 			'Distance' => 0.60,
 			'Elapsed Time' => 160.43,
-			'Average Cadence' => 71.7142,
+			'Average Cadence' => 71.7143,
 			'Average Watts' => 114,
 			'Start Time' => 1253550420,
 			'Check Points' => 12,
@@ -70,7 +70,7 @@ my $testfiles = {
 			'Distance' => 16.87,
 			'Elapsed Time' => 2700,
 			'Average Cadence' => 95.5222,
-			'Average Watts' => 179.5388,
+			'Average Watts' => 179.5389,
 			'Start Time' => 1256490300,
 			'Check Points' => 181,
 			'Max Watts' => 323,
@@ -102,11 +102,11 @@ my $testfiles = {
 		'TimeZone' => 'EST',
 		'Tests' => {
 			'Distance' => 24.59,
-			'Elapsed Time' => 4670.6899,
+			'Elapsed Time' => 4670.69,
 			'Start Time' => 1259528340,
 			'Check Points' => 313,
 			'Average Speed' => 18.9367,
-			'Average Cadence' => 97.6217,
+			'Average Cadence' => 97.6218,
 			'Average Watts' => 233.2083,
 		},
 	},
@@ -121,7 +121,7 @@ my $testfiles = {
 			'Sample Rate' => 5,
 			'Check Points' => 721,
 			'Average Speed' => 21.1486,
-			'Average Cadence' => 87.4013,
+			'Average Cadence' => 87.4014,
 			'Average Watts' => 299.2361,
 		},
 	},
@@ -139,7 +139,7 @@ $tar->extract();
 sub round_off {
 	my ($value) = @_;
 
-	return ((int ($value * 10000)) / 10000 + 0.0000);
+	return ((int (($value * 10000) + 0.5)) / 10000 + 0.0000);
 }
 
 for my $file ( keys %$testfiles ) {
@@ -176,13 +176,13 @@ for my $file ( keys %$testfiles ) {
 		}
 	}
 
-	# Now test the na2gd script with our data file
-	my $rc = system ("$^X ../script/na2gd \"$file\"");
-	ok ($rc, 0, "na2gd failed ($rc)\n");
+	# Now test the na2png script with our data file
+	my $rc = system ("$^X ../script/na2png \"$file\"");
+	ok ($rc, 0, "na2png failed ($rc)\n");
 
 	my $imgfile = $file;
 	$imgfile =~ s/\.RAW$/.png/;
-	ok (-s $imgfile > 0, 1, "na2gd output file should not be zero length($imgfile)\n");
+	ok (-s $imgfile > 0, 1, "na2png output file should not be zero length($imgfile)\n");
 }
 
 exit 0;
